@@ -48,7 +48,7 @@ type Trade struct {
 	Date          string
 }
 
-func (client *Client) TradeHistory(currencyPair string, start, end uint32) (trades []Trade, err error) {
+func (client *Client) TradeHistory(currencyPair string, start, end int64) (trades []Trade, err error) {
 	params := Params{
 		"currencyPair": currencyPair,
 	}
@@ -149,6 +149,8 @@ func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal
 	if !result.Success {
 		err = errors.New("Result is not successful")
 	}
+
+	placedOrder = result.PlacedOrder
 
 	return
 }
