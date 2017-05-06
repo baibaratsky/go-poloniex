@@ -9,6 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 	"errors"
 	"fmt"
+	"context"
 )
 
 const tradingApiEndpoint = "https://poloniex.com/tradingApi"
@@ -186,6 +187,11 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 
 	request.SetHeader("Key", client.key).
 		SetHeader("Sign", hex.EncodeToString(signature.Sum(nil)))
+
+	err = client.limiter.Wait(context.TODO())
+	if err != nil {
+		return
+	}
 
 	response, err := request.Post(tradingApiEndpoint)
 	client.nonceMutex.Unlock()

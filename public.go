@@ -4,6 +4,7 @@ import (
 	"github.com/shopspring/decimal"
 	"encoding/json"
 	"errors"
+	"context"
 )
 
 const publicApiEndpoint = "https://poloniex.com/public"
@@ -38,6 +39,11 @@ func (client *Client) publicApiRequest(result interface{}, method string, params
 		for name, value := range params[0] {
 			queryParams[name] = value
 		}
+	}
+
+	err = client.limiter.Wait(context.TODO())
+	if err != nil {
+		return
 	}
 
 	response, err := client.resty.R().
