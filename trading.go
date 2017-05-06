@@ -164,11 +164,7 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 		return errors.New("Too much arguments")
 	}
 
-	nonce := time.Now().UnixNano()
-	nonceStr := fmt.Sprintf("%d", nonce)
-
 	formData := Params{
-		"nonce": nonceStr,
 		"command": method,
 	}
 
@@ -177,6 +173,10 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 			formData[name] = value
 		}
 	}
+
+	client.nonceMutex.Lock()
+	nonce := time.Now().UnixNano()
+	formData["nonce"] = fmt.Sprintf("%d", nonce)
 
 	request := client.resty.R().
 		SetFormData(formData)
@@ -188,6 +188,7 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 		SetHeader("Sign", hex.EncodeToString(signature.Sum(nil)))
 
 	response, err := request.Post(tradingApiEndpoint)
+	client.nonceMutex.Unlock()
 	if err != nil {
 		return
 	}
