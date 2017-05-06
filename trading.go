@@ -1,7 +1,6 @@
 package poloniex
 
 import (
-	"gopkg.in/resty.v0"
 	"time"
 	"crypto/sha512"
 	"crypto/hmac"
@@ -177,7 +176,8 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 		}
 	}
 
-	request := resty.R().SetFormData(formData)
+	request := client.resty.R().
+		SetFormData(formData)
 
 	signature := hmac.New(sha512.New, []byte(client.secret))
 	signature.Write([]byte(request.FormData.Encode()))

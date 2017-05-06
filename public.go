@@ -2,7 +2,6 @@ package poloniex
 
 import (
 	"github.com/shopspring/decimal"
-	"gopkg.in/resty.v0"
 	"encoding/json"
 	"errors"
 )
@@ -41,7 +40,7 @@ func (client *Client) publicApiRequest(result interface{}, method string, params
 		}
 	}
 
-	response, err := resty.R().
+	response, err := client.resty.R().
 		SetQueryParams(queryParams).
 		Get(publicApiEndpoint)
 	if err != nil {
