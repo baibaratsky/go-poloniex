@@ -3,28 +3,37 @@ package poloniex
 import (
 	"time"
 	"gopkg.in/resty.v0"
-	"sync"
 	"golang.org/x/time/rate"
 )
 
-const defaultTimeout = 10 * time.Second
-const maxRequestsPerSecond = 6
+const defaultTimeout = 130 * time.Second
+const maxRequestsPerSecond = 7
 
-type Client struct {
-	key        string
-	secret     string
-	resty      *resty.Client
-	nonceMutex sync.Mutex
-	limiter    *rate.Limiter
+type Key struct {
+	Key    string
+	Secret string
 }
 
-func NewClient(key, secret string) *Client {
-	return &Client{
-		key: key,
-		secret: secret,
-		resty: resty.DefaultClient.SetTimeout(defaultTimeout),
+type Client struct {
+	keyPool keyPool
+	resty   *resty.Client
+	limiter *rate.Limiter
+}
+
+func NewClient(keys []Key) *Client {
+	client := Client{
+		keyPool: keyPool{
+			keys: make(chan *Key, len(keys)),
+		},
+		resty:   resty.DefaultClient.SetTimeout(defaultTimeout),
 		limiter: rate.NewLimiter(maxRequestsPerSecond, 1),
 	}
+
+	for i := range keys {
+		client.keyPool.Put(&keys[i])
+	}
+
+	return &client
 }
 
 func (client *Client) SetTimeout(timeout time.Duration) {

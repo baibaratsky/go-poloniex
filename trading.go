@@ -15,7 +15,7 @@ import (
 const tradingApiEndpoint = "https://poloniex.com/tradingApi"
 
 const (
-	TypeBuy = "buy"
+	TypeBuy  = "buy"
 	TypeSell = "sell"
 )
 
@@ -101,11 +101,16 @@ type PlacedOrder struct {
 	ResultingTrades []Trade
 }
 
+type UpdatedOrder struct {
+	OrderNumber     uint64 `json:"orderNumber,string"`
+	ResultingTrades map[string][]Trade
+}
+
 func (client *Client) Buy(currencyPair string, rate, amount decimal.Decimal) (placedOrder PlacedOrder, err error) {
 	err = client.tradingApiRequest(&placedOrder, "buy", Params{
 		"currencyPair": currencyPair,
-		"rate": rate.String(),
-		"amount": amount.String(),
+		"rate":         rate.String(),
+		"amount":       amount.String(),
 	})
 	return
 }
@@ -113,8 +118,8 @@ func (client *Client) Buy(currencyPair string, rate, amount decimal.Decimal) (pl
 func (client *Client) Sell(currencyPair string, rate, amount decimal.Decimal) (placedOrder PlacedOrder, err error) {
 	err = client.tradingApiRequest(&placedOrder, "sell", Params{
 		"currencyPair": currencyPair,
-		"rate": rate.String(),
-		"amount": amount.String(),
+		"rate":         rate.String(),
+		"amount":       amount.String(),
 	})
 	return
 }
@@ -129,15 +134,15 @@ func (client *Client) CancelOrder(orderNumber uint64) (success bool, err error) 
 	return
 }
 
-func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal) (placedOrder PlacedOrder, err error) {
+func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal) (updatedOrder UpdatedOrder, err error) {
 	result := struct {
 		Success convertibleBool
-		PlacedOrder
+		UpdatedOrder
 	}{}
 
 	params := Params{
 		"orderNumber": fmt.Sprintf("%d", orderNumber),
-		"rate": rate.String(),
+		"rate":        rate.String(),
 	}
 
 	// amount > 0
@@ -151,7 +156,7 @@ func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal
 		err = errors.New("Result is not successful")
 	}
 
-	placedOrder = result.PlacedOrder
+	updatedOrder = result.UpdatedOrder
 
 	return
 }
@@ -175,26 +180,27 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 		}
 	}
 
-	client.nonceMutex.Lock()
+	err = client.limiter.Wait(context.TODO())
+	if err != nil {
+		return
+	}
+
+	key := client.keyPool.Get()
+
 	nonce := time.Now().UnixNano()
 	formData["nonce"] = fmt.Sprintf("%d", nonce)
 
 	request := client.resty.R().
 		SetFormData(formData)
 
-	signature := hmac.New(sha512.New, []byte(client.secret))
+	signature := hmac.New(sha512.New, []byte(key.Secret))
 	signature.Write([]byte(request.FormData.Encode()))
 
-	request.SetHeader("Key", client.key).
+	request.SetHeader("Key", key.Key).
 		SetHeader("Sign", hex.EncodeToString(signature.Sum(nil)))
 
-	err = client.limiter.Wait(context.TODO())
-	if err != nil {
-		return
-	}
-
 	response, err := request.Post(tradingApiEndpoint)
-	client.nonceMutex.Unlock()
+	client.keyPool.Put(key)
 	if err != nil {
 		return
 	}
@@ -206,5 +212,8 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 	}
 
 	err = json.Unmarshal(response.Body(), result)
+	if err != nil {
+		err = fmt.Errorf("%s\nServer response: %s", err.Error(), string(response.Body()))
+	}
 	return
 }
