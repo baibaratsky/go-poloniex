@@ -70,6 +70,29 @@ func (client *Client) TradeHistory(currencyPair string, start, end int64) (trade
 	return
 }
 
+func (client *Client) TradeHistoryAll(start, end int64) (trades map[string][]Trade, err error) {
+	params := Params{
+		"currencyPair": "all",
+	}
+
+	if start > 0 {
+		params["start"] = fmt.Sprintf("%d", start)
+	}
+	if end > 0 {
+		params["end"] = fmt.Sprintf("%d", end)
+	}
+
+	err = client.tradingApiRequest(&trades, "returnTradeHistory", params)
+
+	for pair := range trades {
+		for i := range trades[pair] {
+			trades[pair][i].CurrencyPair = pair
+		}
+	}
+
+	return
+}
+
 func (client *Client) OrderTrades(orderNumber uint64) (trades []Trade, err error) {
 	err = client.tradingApiRequest(&trades, "returnOrderTrades",
 		Params{"orderNumber": fmt.Sprintf("%d", orderNumber)})
@@ -92,6 +115,13 @@ type Order struct {
 func (client *Client) OpenOrders(currencyPair string) (orders []Order, err error) {
 	err = client.tradingApiRequest(&orders, "returnOpenOrders", Params{
 		"currencyPair": currencyPair,
+	})
+	return
+}
+
+func (client *Client) OpenOrdersAll() (orders map[string][]Order, err error) {
+	err = client.tradingApiRequest(&orders, "returnOpenOrders", Params{
+		"currencyPair": "all",
 	})
 	return
 }

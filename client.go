@@ -7,7 +7,7 @@ import (
 )
 
 const defaultTimeout = 130 * time.Second
-const maxRequestsPerSecond = 7
+const maxRequestsPerSecond = 6
 
 type Key struct {
 	Key    string
