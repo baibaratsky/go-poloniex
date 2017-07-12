@@ -62,7 +62,7 @@ func TestClientOrderBook(t *testing.T) {
 		defer server.Close()
 
 		client := NewClient([]Key{})
-		client.resty.SetTransport(transportForTesting(server))
+		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return OrderBook", func() {
 			orderBook, err := client.OrderBook("STUBED")
@@ -88,7 +88,7 @@ func TestClientOrderBookAll(t *testing.T) {
 		defer server.Close()
 
 		client := NewClient([]Key{})
-		client.resty.SetTransport(transportForTesting(server))
+		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return OrderBooks", func() {
 			orderBooks, err := client.OrderBookAll()

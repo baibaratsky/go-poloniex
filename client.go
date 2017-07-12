@@ -3,6 +3,8 @@ package poloniex
 import (
 	"time"
 
+	"net/http"
+
 	"golang.org/x/time/rate"
 	"gopkg.in/resty.v0"
 )
@@ -41,6 +43,10 @@ func NewClient(keys []Key) *Client {
 
 func (client *Client) SetTimeout(timeout time.Duration) {
 	client.resty.SetTimeout(timeout)
+}
+
+func (client *Client) SetTransport(transport *http.Transport) {
+	client.resty.SetTransport(transport)
 }
 
 type Params map[string]string
