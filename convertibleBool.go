@@ -2,7 +2,6 @@ package poloniex
 
 import (
 	"fmt"
-	"errors"
 	"strings"
 )
 
@@ -16,7 +15,7 @@ func (bit *convertibleBool) UnmarshalJSON(data []byte) error {
 	} else if asString == "0" || asString == "false" {
 		*bit = false
 	} else {
-		return errors.New(fmt.Sprintf("Boolean unmarshal error: invalid input %s", asString))
+		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)
 	}
 	return nil
 }

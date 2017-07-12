@@ -2,12 +2,15 @@ package poloniex
 
 import (
 	"time"
-	"gopkg.in/resty.v0"
+
 	"golang.org/x/time/rate"
+	"gopkg.in/resty.v0"
 )
 
-const defaultTimeout = 130 * time.Second
-const maxRequestsPerSecond = 6
+const (
+	defaultTimeout       = 130 * time.Second
+	maxRequestsPerSecond = 6
+)
 
 type Key struct {
 	Key    string

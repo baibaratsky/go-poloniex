@@ -1,15 +1,16 @@
 package poloniex
 
 import (
-	"time"
-	"crypto/sha512"
+	"context"
 	"crypto/hmac"
+	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/shopspring/decimal"
 	"errors"
 	"fmt"
-	"context"
+	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 const tradingApiEndpoint = "https://poloniex.com/tradingApi"
@@ -104,7 +105,7 @@ func (client *Client) OrderTrades(orderNumber uint64) (trades []Trade, err error
 	return
 }
 
-type Order struct {
+type OwnOrder struct {
 	OrderNumber uint64 `json:"orderNumber,string"`
 	Type        string
 	Rate        decimal.Decimal
@@ -112,14 +113,14 @@ type Order struct {
 	Total       decimal.Decimal
 }
 
-func (client *Client) OpenOrders(currencyPair string) (orders []Order, err error) {
+func (client *Client) OpenOrders(currencyPair string) (orders []OwnOrder, err error) {
 	err = client.tradingApiRequest(&orders, "returnOpenOrders", Params{
 		"currencyPair": currencyPair,
 	})
 	return
 }
 
-func (client *Client) OpenOrdersAll() (orders map[string][]Order, err error) {
+func (client *Client) OpenOrdersAll() (orders map[string][]OwnOrder, err error) {
 	err = client.tradingApiRequest(&orders, "returnOpenOrders", Params{
 		"currencyPair": "all",
 	})
@@ -183,7 +184,7 @@ func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal
 	err = client.tradingApiRequest(&result, "moveOrder", params)
 
 	if !result.Success {
-		err = errors.New("Result is not successful")
+		err = errors.New("result is not successful")
 	}
 
 	updatedOrder = result.UpdatedOrder
@@ -197,7 +198,7 @@ type errorResponse struct {
 
 func (client *Client) tradingApiRequest(result interface{}, method string, params ...Params) (err error) {
 	if len(params) > 1 {
-		return errors.New("Too much arguments")
+		return errors.New("too much arguments")
 	}
 
 	formData := Params{

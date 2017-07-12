@@ -1,13 +1,22 @@
 package poloniex
 
 import (
-	"github.com/shopspring/decimal"
+	"context"
 	"encoding/json"
 	"errors"
-	"context"
+
+	"github.com/shopspring/decimal"
 )
 
-const publicApiEndpoint = "https://poloniex.com/public"
+const (
+	publicApiEndpoint = "https://poloniex.com/public"
+
+	// Order unmarshalling constants
+	orderParamsCount = 2
+	digitsAfterPoint = 8
+	orderRateIndex   = 0
+	orderAmountIndex = 1
+)
 
 type Market struct {
 	Id            uint32
@@ -29,9 +38,50 @@ func (client *Client) Ticker() (ticker Ticker, err error) {
 	return
 }
 
-func (client *Client) publicApiRequest(result interface{}, method string, params ...Params) (err error) {
+type Order struct {
+	Rate   decimal.Decimal
+	Amount decimal.Decimal
+	Total  decimal.Decimal
+}
+
+func (order *Order) UnmarshalJSON(data []byte) error {
+	var orderParams [orderParamsCount]decimal.Decimal
+
+	if err := json.Unmarshal(data, &orderParams); err != nil {
+		return err
+	}
+
+	order.Rate = orderParams[orderRateIndex]
+	order.Amount = orderParams[orderAmountIndex]
+	order.Total = order.Rate.Mul(order.Amount).Round(digitsAfterPoint)
+
+	return nil
+}
+
+type OrderBook struct {
+	Asks     []Order         `json:"asks"`
+	Bids     []Order         `json:"bids"`
+	IsFrozen convertibleBool `json:"isFrozen"`
+	Sequence uint            `json:"seq"`
+}
+
+func (client *Client) OrderBook(currencyPair string) (orderBook OrderBook, err error) {
+	err = client.publicApiRequest(&orderBook, "returnOrderBook", Params{
+		"currencyPair": currencyPair,
+	})
+	return
+}
+
+func (client *Client) OrderBookAll() (orderBooks map[string]OrderBook, err error) {
+	err = client.publicApiRequest(&orderBooks, "returnOrderBook", Params{
+		"currencyPair": "all",
+	})
+	return
+}
+
+func (client *Client) publicApiRequest(result interface{}, method string, params ...Params) error {
 	if len(params) > 1 {
-		return errors.New("Too much arguments")
+		return errors.New("too much arguments")
 	}
 
 	queryParams := Params{"command": method}
@@ -41,22 +91,22 @@ func (client *Client) publicApiRequest(result interface{}, method string, params
 		}
 	}
 
-	err = client.limiter.Wait(context.TODO())
+	err := client.limiter.Wait(context.TODO())
 	if err != nil {
-		return
+		return err
 	}
 
 	response, err := client.resty.R().
 		SetQueryParams(queryParams).
 		Get(publicApiEndpoint)
 	if err != nil {
-		return
+		return err
 	}
 
 	errorResponse := errorResponse{}
 	err = json.Unmarshal(response.Body(), &errorResponse)
 	if err != nil {
-		return
+		return err
 	}
 
 	if errorResponse.Error != nil {
@@ -64,5 +114,5 @@ func (client *Client) publicApiRequest(result interface{}, method string, params
 	}
 
 	err = json.Unmarshal(response.Body(), result)
-	return
+	return err
 }
