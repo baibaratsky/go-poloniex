@@ -196,6 +196,8 @@ type errorResponse struct {
 	Error *string
 }
 
+type emptyArrayResponse []struct{}
+
 func (client *Client) tradingApiRequest(result interface{}, method string, params ...Params) (err error) {
 	if len(params) > 1 {
 		return errors.New("too much arguments")
@@ -213,7 +215,7 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 
 	err = client.limiter.Wait(context.TODO())
 	if err != nil {
-		return
+		return err
 	}
 
 	key := client.keyPool.Get()
@@ -233,7 +235,7 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 	response, err := request.Post(tradingApiEndpoint)
 	client.keyPool.Put(key)
 	if err != nil {
-		return
+		return err
 	}
 
 	errorResponse := errorResponse{}
@@ -242,9 +244,15 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 		return errors.New(*errorResponse.Error)
 	}
 
+	emptyArrayResponse := emptyArrayResponse{}
+	err = json.Unmarshal(response.Body(), &emptyArrayResponse)
+	if err == nil && len(emptyArrayResponse) == 0 {
+		return nil
+	}
+
 	err = json.Unmarshal(response.Body(), result)
 	if err != nil {
 		err = fmt.Errorf("%s\nServer response: %s", err.Error(), string(response.Body()))
 	}
-	return
+	return err
 }
