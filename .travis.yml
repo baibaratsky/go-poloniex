@@ -1,0 +1,9 @@
+language: go
+go:
+  - 1.8.3
+before_install:
+  - go get github.com/mattn/goveralls
+script:
+  - $HOME/gopath/bin/goveralls -service=travis-pro
+env:
+- COVERALLS_TOKEN=RkS1eVW4Lx3AiXZaEYaJssByMtPGqUhr4
