@@ -53,9 +53,17 @@ func (order *Order) UnmarshalJSON(data []byte) error {
 
 	order.Rate = orderParams[orderRateIndex]
 	order.Amount = orderParams[orderAmountIndex]
-	order.Total = order.Rate.Mul(order.Amount).Round(digitsAfterPoint)
+	order.CalculateTotal()
 
 	return nil
+}
+
+func (order *Order) CalculateTotal() {
+	if order.Amount.Equal(decimal.Zero) {
+		return
+	}
+
+	order.Total = order.Rate.Mul(order.Amount).Round(digitsAfterPoint)
 }
 
 type OrderBook struct {
