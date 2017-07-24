@@ -51,7 +51,7 @@ func TestOrder(t *testing.T) {
 	})
 }
 
-func TestClientOrderBook(t *testing.T) {
+func TestClient_OrderBook(t *testing.T) {
 	Convey("Setup correct server", t, func() {
 		handler := &fakeHandler{
 			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,7 @@ func TestClientOrderBook(t *testing.T) {
 	})
 }
 
-func TestClientOrderBookAll(t *testing.T) {
+func TestClient_OrderBookAll(t *testing.T) {
 	Convey("Setup correct server", t, func() {
 		handler := &fakeHandler{
 			HandleFunc: func(w http.ResponseWriter, r *http.Request) {

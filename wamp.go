@@ -23,13 +23,7 @@ const (
 	OrderUpdateTypeBid = "bid"
 )
 
-type OrderModify struct {
-	Type     string
-	Sequence uint
-	Order
-}
-
-type OrderRemove struct {
+type OrderModification struct {
 	Type     string
 	Sequence uint
 	Order
@@ -86,32 +80,24 @@ func marketMessageHandler(messageChan chan interface{}, errChan chan error, pair
 				continue
 			}
 
-			switch message.Type {
-			case messageTypeOrderBookModify:
-				orderModify, err := message.orderModify()
-				if err != nil {
-					errChan <- err
-					break
-				}
-
-				messageChan <- orderModify
-			case messageTypeOrderBookRemove:
-				orderRemove, err := message.orderRemove()
-				if err != nil {
-					errChan <- err
-					break
-				}
-
-				messageChan <- orderRemove
-			case messageTypeNewTrade:
+			if message.Type == messageTypeNewTrade {
 				newTrade, err := message.newTrade()
 				if err != nil {
 					errChan <- err
-					break
+					continue
 				}
 
 				messageChan <- newTrade
+				continue
 			}
+
+			orderModification, err := message.orderModification()
+			if err != nil {
+				errChan <- err
+				continue
+			}
+
+			messageChan <- orderModification
 		}
 	}
 }
@@ -132,41 +118,29 @@ type marketMessageData struct {
 	Date    string
 }
 
-func (message marketMessage) orderModify() (orderModify OrderModify, err error) {
-	if message.Type != messageTypeOrderBookModify {
-		return orderModify, fmt.Errorf("can't convert marketMessage with type %s to OrderModify", message.Type)
+func (message marketMessage) orderModification() (orderModification OrderModification, err error) {
+	if message.Type != messageTypeOrderBookModify && message.Type != messageTypeOrderBookRemove {
+		return orderModification, fmt.Errorf("can't convert marketMessage with type %s to OrderModification", message.Type)
 	}
 
-	orderModify.Type = message.Data.Type
-	orderModify.Sequence = message.Sequence
+	orderModification.Type = message.Data.Type
+	orderModification.Sequence = message.Sequence
 
-	if orderModify.Rate, err = decimal.NewFromString(message.Data.Rate); err != nil {
-		return orderModify, fmt.Errorf("marketMessage.orderModify(), rate: %s", err)
+	orderModification.Rate, err = decimal.NewFromString(message.Data.Rate)
+	if err != nil {
+		return orderModification, fmt.Errorf("marketMessage.orderModification(), rate: %s", err)
 	}
 
-	if orderModify.Amount, err = decimal.NewFromString(message.Data.Amount); err != nil {
-		return orderModify, fmt.Errorf("marketMessage.orderModify(), amount: %s", err)
+	if message.Data.Amount != "" {
+		orderModification.Amount, err = decimal.NewFromString(message.Data.Amount)
+		if err != nil {
+			return orderModification, fmt.Errorf("marketMessage.orderModification(), amount: %s", err)
+		}
+
+		orderModification.CalculateTotal()
 	}
 
-	orderModify.CalculateTotal()
-
-	return orderModify, nil
-}
-
-func (message marketMessage) orderRemove() (orderRemove OrderRemove, err error) {
-
-	if message.Type != messageTypeOrderBookRemove {
-		return orderRemove, fmt.Errorf("can't convert marketMessage with type %s to OrderRemove", message.Type)
-	}
-
-	orderRemove.Type = message.Data.Type
-	orderRemove.Sequence = message.Sequence
-
-	if orderRemove.Rate, err = decimal.NewFromString(message.Data.Rate); err != nil {
-		return orderRemove, fmt.Errorf("marketMessage.orderRemove(), rate: %s", err)
-	}
-
-	return orderRemove, nil
+	return orderModification, nil
 }
 
 func (message marketMessage) newTrade() (newTrade NewTrade, err error) {
@@ -177,21 +151,24 @@ func (message marketMessage) newTrade() (newTrade NewTrade, err error) {
 		CurrencyPair: message.Pair,
 	}
 
-	if newTrade.Rate, err = decimal.NewFromString(message.Data.Rate); err != nil {
+	newTrade.Rate, err = decimal.NewFromString(message.Data.Rate)
+	if err != nil {
 		return newTrade, fmt.Errorf("marketMessage.newTrade(), rate: %s", err)
 	}
 
-	if newTrade.Amount, err = decimal.NewFromString(message.Data.Amount); err != nil {
+	newTrade.Amount, err = decimal.NewFromString(message.Data.Amount)
+	if err != nil {
 		return newTrade, fmt.Errorf("marketMessage.newTrade(), amount: %s", err)
 	}
 
-	if newTrade.Total, err = decimal.NewFromString(message.Data.Total); err != nil {
+	newTrade.Total, err = decimal.NewFromString(message.Data.Total)
+	if err != nil {
 		return newTrade, fmt.Errorf("marketMessage.newTrade(), total: %s", err)
 	}
 
 	id, err := strconv.Atoi(message.Data.TradeId)
 	if err != nil {
-		return newTrade, fmt.Errorf("marketMessage.newTrade(), id: %s")
+		return newTrade, fmt.Errorf("marketMessage.newTrade(), id: %s", err)
 	}
 	newTrade.Id = uint64(id)
 

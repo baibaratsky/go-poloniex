@@ -72,10 +72,10 @@ func TestNewWampClient(t *testing.T) {
 			}
 
 			message := <-messageChan
-			orderModify, ok := message.(OrderModify)
+			orderModification, ok := message.(OrderModification)
 
 			So(ok, ShouldBeTrue)
-			So(orderModify.Type, ShouldEqual, OrderUpdateTypeBid)
+			So(orderModification.Type, ShouldEqual, OrderUpdateTypeBid)
 		})
 
 		Convey("It should recieve remove message", func() {
@@ -95,10 +95,10 @@ func TestNewWampClient(t *testing.T) {
 			}
 
 			message := <-messageChan
-			orderRemove, ok := message.(OrderRemove)
+			orderRemoval, ok := message.(OrderModification)
 
 			So(ok, ShouldBeTrue)
-			So(orderRemove.Type, ShouldEqual, OrderUpdateTypeAsk)
+			So(orderRemoval.Type, ShouldEqual, OrderUpdateTypeAsk)
 		})
 
 		Convey("It should recieve trade message", func() {
