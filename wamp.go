@@ -60,6 +60,14 @@ func (wampClient *WampClient) SubscribeToPair(pair string, messageChan chan inte
 	return nil
 }
 
+func (wampClient *WampClient) UnsubscribeFromPair(pair string) error {
+	if err := wampClient.client.Unsubscribe(pair); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (wampClient *WampClient) Close() error {
 	return wampClient.client.Close()
 }

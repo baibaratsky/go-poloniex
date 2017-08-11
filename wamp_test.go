@@ -12,25 +12,15 @@ import (
 	"gopkg.in/jcelliott/turnpike.v2"
 )
 
-func newTestWebsocketServer(t *testing.T) (*turnpike.WebsocketServer, *httptest.Server) {
-	wampServer := turnpike.NewBasicWebsocketServer(wampRealm)
-	httpServer := httptest.NewTLSServer(wampServer)
-	return wampServer, httpServer
-}
-
 func TestNewWampClient(t *testing.T) {
 	Convey("Given fake WAMP server", t, func() {
-		wampServer, httpServer := newTestWebsocketServer(t)
-		defer func() {
-			wampServer.Close()
-			httpServer.Close()
-		}()
+		wampServer, httpServer, clear := newTestWebsocketServer(t)
+		defer clear()
 
 		localClient, err := wampServer.GetLocalClient(wampRealm, nil)
 		if err != nil {
-			t.Fatalf("Error getting local client: %s", err)
+			t.Fatalf("error getting local client: %s", err)
 		}
-		defer localClient.Close()
 
 		client, err := NewWampClient(&tls.Config{InsecureSkipVerify: true}, func(network, addr string) (net.Conn, error) {
 			So(network, ShouldEqual, "tcp")
@@ -41,17 +31,16 @@ func TestNewWampClient(t *testing.T) {
 			}
 			return net.Dial("tcp", fmt.Sprintf("localhost:%s", url.Port()))
 		})
-		defer client.Close()
 
 		if err != nil {
-			t.Fatalf("Error creating client: %s", err)
+			t.Fatalf("error creating client: %s", err)
 		}
 
 		messageChan := make(chan interface{})
 		errChan := make(chan error)
 
 		if err := client.SubscribeToPair("BTC_ETH", messageChan, errChan); err != nil {
-			t.Fatalf("Error subscribing to chat channel: %s", err)
+			t.Fatalf("error subscribing to chat channel: %s", err)
 		}
 
 		Convey("It should recieve modify message", func() {
@@ -68,7 +57,7 @@ func TestNewWampClient(t *testing.T) {
 			kwargs := map[string]interface{}{"seq": float64(1)}
 
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			message := <-messageChan
@@ -91,7 +80,7 @@ func TestNewWampClient(t *testing.T) {
 			kwargs := map[string]interface{}{"seq": float64(1)}
 
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			message := <-messageChan
@@ -118,7 +107,7 @@ func TestNewWampClient(t *testing.T) {
 			kwargs := map[string]interface{}{"seq": float64(1)}
 
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			message := <-messageChan
@@ -133,7 +122,7 @@ func TestNewWampClient(t *testing.T) {
 			kwargs := map[string]interface{}{}
 
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			err := <-errChan
@@ -142,7 +131,7 @@ func TestNewWampClient(t *testing.T) {
 
 			kwargs = map[string]interface{}{"seq": ""}
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			err = <-errChan
@@ -159,7 +148,7 @@ func TestNewWampClient(t *testing.T) {
 			kwargs := map[string]interface{}{"seq": float64(1)}
 
 			if err := localClient.Publish("BTC_ETH", nil, args, kwargs); err != nil {
-				t.Fatalf("Error publising to pair: %s", err)
+				t.Fatalf("error publising to pair: %s", err)
 			}
 
 			err := <-errChan
@@ -167,4 +156,13 @@ func TestNewWampClient(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, "1 error(s) decoding")
 		})
 	})
+}
+
+func newTestWebsocketServer(t *testing.T) (*turnpike.WebsocketServer, *httptest.Server, func()) {
+	wampServer := turnpike.NewBasicWebsocketServer(wampRealm)
+	httpServer := httptest.NewTLSServer(wampServer)
+	return wampServer, httpServer, func() {
+		httpServer.Close()
+		wampServer.Close()
+	}
 }
