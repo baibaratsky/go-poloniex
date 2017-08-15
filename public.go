@@ -77,14 +77,33 @@ func (client *Client) OrderBook(currencyPair string) (orderBook OrderBook, err e
 	err = client.publicApiRequest(&orderBook, "returnOrderBook", Params{
 		"currencyPair": currencyPair,
 	})
-	return
+
+	return orderBook, err
 }
 
 func (client *Client) OrderBookAll() (orderBooks map[string]OrderBook, err error) {
 	err = client.publicApiRequest(&orderBooks, "returnOrderBook", Params{
 		"currencyPair": "all",
 	})
-	return
+
+	return orderBooks, err
+}
+
+func (client *Client) Currencies() (currencies map[string]Currency, err error) {
+	err = client.publicApiRequest(&currencies, "returnCurrencies", Params{})
+
+	return currencies, err
+}
+
+type Currency struct {
+	Id             uint            `json:"id"`
+	Name           string          `json:"name"`
+	TaxFee         decimal.Decimal `json:"txFee"`
+	MinimumConf    uint            `json:"minConf"`
+	DepositAddress string          `json:"depositAddress"`
+	Disabled       convertibleBool `json:"disabled"`
+	Frozen         convertibleBool `json:"frozen"`
+	Delisted       convertibleBool `json:"delisted"`
 }
 
 func (client *Client) publicApiRequest(result interface{}, method string, params ...Params) error {

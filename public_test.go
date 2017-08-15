@@ -105,3 +105,25 @@ func TestClient_OrderBookAll(t *testing.T) {
 		})
 	})
 }
+
+func TestClient_Currencies(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"1CR":{"id":1,"name":"1CRedit","txFee":"0.01000000","minConf":3,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0},"ABY":{"id":2,"name":"ArtByte","txFee":"0.01000000","minConf":8,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0}}`)
+			},
+		}
+
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should return currencies", func() {
+			currencies, err := client.Currencies()
+			So(err, ShouldBeNil)
+			So(len(currencies), ShouldEqual, 2)
+		})
+	})
+}
