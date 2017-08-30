@@ -38,9 +38,9 @@ func (client *Client) Balances() (balances map[string]decimal.Decimal, err error
 }
 
 type Trade struct {
-	GlobalTradeId uint64 `json:"globalTradeID"`
-	Id            uint64 `json:"tradeID,string"`
-	OrderNumber   uint64 `json:"orderNumber,string"`
+	GlobalTradeId uint64          `json:"globalTradeID"`
+	Id            convertibleUint `json:"tradeID"`
+	OrderNumber   uint64          `json:"orderNumber,string"`
 	CurrencyPair  string
 	Type          string
 	Rate          decimal.Decimal
@@ -128,12 +128,12 @@ func (client *Client) OpenOrdersAll() (orders map[string][]OwnOrder, err error) 
 }
 
 type PlacedOrder struct {
-	OrderNumber     uint64 `json:"orderNumber,string"`
+	OrderNumber     convertibleUint `json:"orderNumber"`
 	ResultingTrades []Trade
 }
 
 type UpdatedOrder struct {
-	OrderNumber     uint64 `json:"orderNumber,string"`
+	OrderNumber     convertibleUint `json:"orderNumber"`
 	ResultingTrades map[string][]Trade
 }
 
@@ -176,8 +176,7 @@ func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal
 		"rate":        rate.String(),
 	}
 
-	// amount > 0
-	if amount.Cmp(decimal.Zero) == 1 {
+	if amount.GreaterThan(decimal.Zero) {
 		params["amount"] = amount.String()
 	}
 

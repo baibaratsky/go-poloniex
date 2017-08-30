@@ -3,7 +3,6 @@ package poloniex
 import (
 	"crypto/tls"
 	"fmt"
-
 	"strconv"
 
 	"github.com/mitchellh/mapstructure"
@@ -58,18 +57,6 @@ func (wampClient *WampClient) SubscribeToPair(pair string, messageChan chan inte
 	}
 
 	return nil
-}
-
-func (wampClient *WampClient) UnsubscribeFromPair(pair string) error {
-	if err := wampClient.client.Unsubscribe(pair); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (wampClient *WampClient) Close() error {
-	return wampClient.client.Close()
 }
 
 func marketMessageHandler(messageChan chan interface{}, errChan chan error, pair string) turnpike.EventHandler {
@@ -178,7 +165,7 @@ func (message marketMessage) newTrade() (newTrade NewTrade, err error) {
 	if err != nil {
 		return newTrade, fmt.Errorf("marketMessage.newTrade(), id: %s", err)
 	}
-	newTrade.Id = uint64(id)
+	newTrade.Id = convertibleUint(id)
 
 	return newTrade, nil
 }

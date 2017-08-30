@@ -12,11 +12,11 @@ func Test_convertibleBool_UnmarshalJSON(t *testing.T) {
 		wantErr bool
 		want    bool
 	}{
-		{"TrueNumberValue", args{[]byte(`"1"`)}, false, true},
-		{"TrueValue", args{[]byte(`"true"`)}, false, true},
-		{"FalseNumberValue", args{[]byte(`"0"`)}, false, false},
-		{"FalseValue", args{[]byte(`"false"`)}, false, false},
-		{"ErrorValue", args{[]byte(`"//"`)}, true, false},
+		{"true number value", args{[]byte(`"1"`)}, false, true},
+		{"true boolean value", args{[]byte(`"true"`)}, false, true},
+		{"false number value", args{[]byte(`"0"`)}, false, false},
+		{"false boolean value", args{[]byte(`"false"`)}, false, false},
+		{"error value", args{[]byte(`"//"`)}, true, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

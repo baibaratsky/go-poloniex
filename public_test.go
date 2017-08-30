@@ -4,14 +4,15 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"net/http"
-	"net/http/httptest"
-
 	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/time/rate"
+	resty "gopkg.in/resty.v0"
 )
 
 type fakeHandler struct {
@@ -126,4 +127,132 @@ func TestClient_Currencies(t *testing.T) {
 			So(len(currencies), ShouldEqual, 2)
 		})
 	})
+}
+
+func TestClient_Ticker(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"BTC_LTC":{"last":"0.0251","lowestAsk":"0.02589999","highestBid":"0.0251","percentChange":"0.02390438",
+"baseVolume":"6.16485315","quoteVolume":"245.82513926"},"BTC_NXT":{"last":"0.00005730","lowestAsk":"0.00005710",
+"highestBid":"0.00004903","percentChange":"0.16701570","baseVolume":"0.45347489","quoteVolume":"9094"}}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should return ticker", func() {
+			ticker, err := client.Ticker()
+			So(err, ShouldBeNil)
+
+			So(len(ticker), ShouldEqual, 2)
+			So(ticker["BTC_LTC"].Last.Equal(decimal.New(251, -4)), ShouldBeTrue)
+		})
+	})
+}
+
+func TestClient_publicApiRequest(t *testing.T) {
+	type fields struct {
+		resty      *resty.Client
+		limiter    *rate.Limiter
+		handleFunc http.HandlerFunc
+	}
+	type args struct {
+		result interface{}
+		method string
+		params []Params
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "too much arguments",
+			fields: fields{
+				resty:      resty.DefaultClient,
+				limiter:    nil,
+				handleFunc: func(w http.ResponseWriter, r *http.Request) {},
+			},
+			args: args{
+				result: make(map[string]string),
+				method: "any",
+				params: []Params{
+					Params{"first": "first"},
+					Params{"second": "second"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "limiter error",
+			fields: fields{
+				resty:      resty.DefaultClient,
+				limiter:    rate.NewLimiter(1, 0),
+				handleFunc: func(w http.ResponseWriter, r *http.Request) {},
+			},
+			args: args{
+				result: make(map[string]string),
+				method: "any",
+				params: []Params{
+					Params{"first": "first"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "unmarshal error",
+			fields: fields{
+				resty:   resty.DefaultClient,
+				limiter: rate.NewLimiter(1, 1),
+				handleFunc: func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, `///`)
+				},
+			},
+			args: args{
+				result: make(map[string]string),
+				method: "ERROR",
+				params: []Params{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "response error",
+			fields: fields{
+				resty:   resty.DefaultClient,
+				limiter: rate.NewLimiter(1, 1),
+				handleFunc: func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, `{"error": "some"}`)
+				},
+			},
+			args: args{
+				result: make(map[string]string),
+				method: "ERROR",
+				params: []Params{},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := &fakeHandler{
+				HandleFunc: tt.fields.handleFunc,
+			}
+			server := createFakeServer(handler)
+			defer server.Close()
+			client := &Client{
+				resty:   tt.fields.resty,
+				limiter: tt.fields.limiter,
+			}
+			transport := transportForTesting(server)
+			client.SetTransport(transport)
+			if err := client.publicApiRequest(tt.args.result, tt.args.method, tt.args.params...); (err != nil) != tt.wantErr {
+				t.Errorf("Client.publicApiRequest() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

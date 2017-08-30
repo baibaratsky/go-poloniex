@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
+	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/jcelliott/turnpike.v2"
 )
@@ -164,5 +166,215 @@ func newTestWebsocketServer(t *testing.T) (*turnpike.WebsocketServer, *httptest.
 	return wampServer, httpServer, func() {
 		httpServer.Close()
 		wampServer.Close()
+	}
+}
+
+func Test_marketMessage_newTrade(t *testing.T) {
+	type fields struct {
+		Sequence uint
+		Pair     string
+		Data     marketMessageData
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		wantNewTrade NewTrade
+		wantErr      bool
+	}{
+		{
+			name: "rate parse error",
+			fields: fields{
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date: "30.08.2017",
+					Type: TypeSell,
+					Rate: "invalid",
+				},
+			},
+			wantNewTrade: NewTrade{
+				Sequence: 1,
+				Trade: Trade{
+					CurrencyPair: "ETH_BTC",
+					Date:         "30.08.2017",
+					Type:         TypeSell,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "amount parse error",
+			fields: fields{
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date:   "30.08.2017",
+					Type:   TypeSell,
+					Rate:   "0.1",
+					Amount: "invalid",
+				},
+			},
+			wantNewTrade: NewTrade{
+				Sequence: 1,
+				Trade: Trade{
+					CurrencyPair: "ETH_BTC",
+					Date:         "30.08.2017",
+					Type:         TypeSell,
+					Rate:         decimal.New(1, -1),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "total parse error",
+			fields: fields{
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date:   "30.08.2017",
+					Type:   TypeSell,
+					Rate:   "0.1",
+					Amount: "0.01",
+					Total:  "invalid",
+				},
+			},
+			wantNewTrade: NewTrade{
+				Sequence: 1,
+				Trade: Trade{
+					CurrencyPair: "ETH_BTC",
+					Date:         "30.08.2017",
+					Type:         TypeSell,
+					Rate:         decimal.New(1, -1),
+					Amount:       decimal.New(1, -2),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "tradeId parse error",
+			fields: fields{
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date:    "30.08.2017",
+					Type:    TypeSell,
+					Rate:    "0.1",
+					Amount:  "0.01",
+					Total:   "0.001",
+					TradeId: "invalid",
+				},
+			},
+			wantNewTrade: NewTrade{
+				Sequence: 1,
+				Trade: Trade{
+					CurrencyPair: "ETH_BTC",
+					Date:         "30.08.2017",
+					Type:         TypeSell,
+					Rate:         decimal.New(1, -1),
+					Amount:       decimal.New(1, -2),
+					Total:        decimal.New(1, -3),
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			message := marketMessage{
+				Sequence: tt.fields.Sequence,
+				Pair:     tt.fields.Pair,
+				Data:     tt.fields.Data,
+			}
+			gotNewTrade, err := message.newTrade()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("marketMessage.newTrade() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotNewTrade, tt.wantNewTrade) {
+				t.Errorf("marketMessage.newTrade() = %v, want %v", gotNewTrade, tt.wantNewTrade)
+			}
+		})
+	}
+}
+
+func Test_marketMessage_orderModification(t *testing.T) {
+	type fields struct {
+		Type     string
+		Sequence uint
+		Pair     string
+		Data     marketMessageData
+	}
+	tests := []struct {
+		name                  string
+		fields                fields
+		wantOrderModification OrderModification
+		wantErr               bool
+	}{
+		{
+			name: "wrong type",
+			fields: fields{
+				Type: "WRONG TYPE",
+			},
+			wantOrderModification: OrderModification{},
+			wantErr:               true,
+		},
+		{
+			name: "invalid rate",
+			fields: fields{
+				Type:     messageTypeOrderBookModify,
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date: "30.08.2017",
+					Type: TypeSell,
+					Rate: "invalid",
+				},
+			},
+			wantOrderModification: OrderModification{
+				Sequence: 1,
+				Type:     TypeSell,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid amount",
+			fields: fields{
+				Type:     messageTypeOrderBookModify,
+				Sequence: 1,
+				Pair:     "ETH_BTC",
+				Data: marketMessageData{
+					Date:   "30.08.2017",
+					Type:   TypeSell,
+					Rate:   "0.1",
+					Amount: "invalid",
+				},
+			},
+			wantOrderModification: OrderModification{
+				Sequence: 1,
+				Type:     TypeSell,
+				Order: Order{
+					Rate: decimal.New(1, -1),
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			message := marketMessage{
+				Type:     tt.fields.Type,
+				Sequence: tt.fields.Sequence,
+				Pair:     tt.fields.Pair,
+				Data:     tt.fields.Data,
+			}
+			gotOrderModification, err := message.orderModification()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("marketMessage.orderModification() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotOrderModification, tt.wantOrderModification) {
+				t.Errorf("marketMessage.orderModification() = %v, want %v", gotOrderModification, tt.wantOrderModification)
+			}
+		})
 	}
 }
