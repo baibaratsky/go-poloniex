@@ -9,7 +9,7 @@ import (
 
 func TestClient(t *testing.T) {
 	Convey("Given new client", t, func() {
-		keys := []Key{Key{"key", "secret"}}
+		keys := []Key{{"key", "secret"}}
 
 		c := NewClient(keys)
 
@@ -23,6 +23,11 @@ func TestClient(t *testing.T) {
 
 		Convey("Should SetTransport", func() {
 			c.SetTransport(&http.Transport{})
+		})
+
+		Convey("Should SetRequestRateLimit", func() {
+			c.SetRequestRateLimit(888)
+			So(c.limiter.Limit(), ShouldEqual, 888)
 		})
 	})
 }

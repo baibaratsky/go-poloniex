@@ -49,4 +49,8 @@ func (client *Client) SetTransport(transport *http.Transport) {
 	client.resty.SetTransport(transport)
 }
 
+func (client *Client) SetRequestRateLimit(limit rate.Limit) {
+	client.limiter.SetLimit(limit)
+}
+
 type Params map[string]string
