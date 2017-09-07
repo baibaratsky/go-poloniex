@@ -48,7 +48,7 @@ func TestOrder(t *testing.T) {
 
 		So(order.Rate.Equal(decimal.New(300888, -8)), ShouldBeTrue)
 		So(order.Amount.Equal(decimal.New(3580906, -8)), ShouldBeTrue)
-		So(order.Total.Equal(decimal.New(10775, -8)), ShouldBeTrue)
+		So(order.Total.String(), ShouldEqual, decimal.New(1077451644528, -16).String())
 	})
 }
 

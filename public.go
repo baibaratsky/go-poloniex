@@ -13,7 +13,6 @@ const (
 
 	// Order unmarshalling constants
 	orderParamsCount = 2
-	digitsAfterPoint = 8
 	orderRateIndex   = 0
 	orderAmountIndex = 1
 )
@@ -63,7 +62,7 @@ func (order *Order) CalculateTotal() {
 		return
 	}
 
-	order.Total = order.Rate.Mul(order.Amount).Round(digitsAfterPoint)
+	order.Total = order.Rate.Mul(order.Amount)
 }
 
 type OrderBook struct {
