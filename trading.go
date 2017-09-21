@@ -37,6 +37,32 @@ func (client *Client) Balances() (balances map[string]decimal.Decimal, err error
 	return
 }
 
+func (client *Client) DepositAddresses() (addresses map[string]string, err error) {
+	err = client.tradingApiRequest(&addresses, "returnDepositAddresses")
+	return
+}
+
+func (client *Client) NewAddress(currency string) (address string, err error) {
+	params := Params{
+		"currency": currency,
+	}
+
+	result := struct {
+		Success  convertibleBool `json:"success"`
+		Response string          `json:"response"`
+	}{}
+
+	if err = client.tradingApiRequest(&result, "generateNewAddress", params); err != nil {
+		return result.Response, err
+	}
+
+	if !result.Success {
+		return result.Response, fmt.Errorf("generateNewAddress for currency %s success = %s, response = %s", currency, result.Success, result.Response)
+	}
+
+	return result.Response, err
+}
+
 type Trade struct {
 	GlobalTradeId uint64          `json:"globalTradeID"`
 	Id            convertibleUint `json:"tradeID"`
@@ -189,6 +215,21 @@ func (client *Client) MoveOrder(orderNumber uint64, rate, amount decimal.Decimal
 	updatedOrder = result.UpdatedOrder
 
 	return
+}
+
+func (client *Client) Withdraw(currency, address string, amount decimal.Decimal) (response string, err error) {
+	result := struct {
+		Response string
+	}{}
+
+	params := Params{
+		"currency": currency,
+		"address":  address,
+		"amount":   amount.String(),
+	}
+
+	err = client.tradingApiRequest(&result, "withdraw", params)
+	return result.Response, err
 }
 
 type errorResponse struct {

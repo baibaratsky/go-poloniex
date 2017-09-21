@@ -56,6 +56,67 @@ func TestClient_Balances(t *testing.T) {
 	})
 }
 
+func TestClient_DepositAddresses(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"BTC":"19YqztHmspv2egyD6jQM3yn81x5t5krVdJ","LTC":"LPgf9kjv9H1Vuh4XSaKhzBe8JHdou1WgUB"}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should return deposit_addresses", func() {
+			addresses, err := client.DepositAddresses()
+			So(err, ShouldBeNil)
+
+			So(len(addresses), ShouldEqual, 2)
+			So(addresses["BTC"], ShouldEqual, "19YqztHmspv2egyD6jQM3yn81x5t5krVdJ")
+		})
+	})
+}
+
+func TestClient_NewAddress(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"success":1,"response":"CKXbbs8FAVbtEa397gJHSutmrdrBrhUMxe"}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should return deposit_addresses", func() {
+			address, err := client.NewAddress("BTC")
+			So(err, ShouldBeNil)
+
+			So(address, ShouldEqual, "CKXbbs8FAVbtEa397gJHSutmrdrBrhUMxe")
+		})
+
+		Convey("Should return error on tradingApiRequest", func() {
+			handler.HandleFunc = func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `///`)
+			}
+			_, err := client.NewAddress("BTC")
+			So(err, ShouldBeError)
+		})
+
+		Convey("Should return error on failured response", func() {
+			handler.HandleFunc = func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"success":0,"response":"some error"}`)
+			}
+			_, err := client.NewAddress("BTC")
+			So(err, ShouldBeError)
+		})
+	})
+}
+
 func TestClient_TradeHistory(t *testing.T) {
 	Convey("Setup correct server", t, func() {
 		handler := &fakeHandler{
@@ -266,6 +327,25 @@ func TestClient_MoveOrder(t *testing.T) {
 			_, err := client.MoveOrder(0, decimal.Zero, decimal.New(1, 0))
 			So(err, ShouldNotBeEmpty)
 		})
+	})
+}
+
+func TestClient_Withdraw(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"response":"Withdrew 10 BTC."}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+		response, err := client.Withdraw("BTC", "xyz", decimal.New(1, 0))
+		So(err, ShouldBeNil)
+
+		So(response, ShouldEqual, "Withdrew 10 BTC.")
 	})
 }
 
