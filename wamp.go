@@ -51,6 +51,18 @@ func NewWampClient(tlsConfig *tls.Config, dial turnpike.DialFunc) (*WampClient, 
 	return &WampClient{client: client}, nil
 }
 
+func (wampClient *WampClient) Close() error {
+	return wampClient.client.Close()
+}
+
+func (wampClient *WampClient) UnsubscribeFromPair(pair string) error {
+	if err := wampClient.client.Unsubscribe(pair); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (wampClient *WampClient) SubscribeToPair(pair string, messageChan chan interface{}, errChan chan error) error {
 	if err := wampClient.client.Subscribe(pair, nil, marketMessageHandler(messageChan, errChan, pair)); err != nil {
 		return err
