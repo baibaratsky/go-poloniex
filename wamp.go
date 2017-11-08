@@ -38,7 +38,7 @@ type WampClient struct {
 }
 
 func NewWampClient(tlsConfig *tls.Config, dial turnpike.DialFunc) (*WampClient, error) {
-	client, err := turnpike.NewWebsocketClient(turnpike.JSON, wampEndpoint, tlsConfig, dial)
+	client, err := turnpike.NewWebsocketClient(turnpike.JSON, wampEndpoint, nil, tlsConfig, dial)
 	if err != nil {
 		return nil, err
 	}
