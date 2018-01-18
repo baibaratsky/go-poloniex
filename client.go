@@ -14,7 +14,7 @@ const (
 )
 
 // Key holds data about api key.
-// User NewKey as initializer.
+// Use NewKey as initializer.
 type Key struct {
 	key    string
 	secret string
