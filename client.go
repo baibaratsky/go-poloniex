@@ -1,6 +1,7 @@
 package poloniex
 
 import (
+	"strconv"
 	"time"
 
 	"net/http"
@@ -23,6 +24,8 @@ type Client struct {
 	keyPool keyPool
 	resty   *resty.Client
 	limiter *rate.Limiter
+
+	noncePool chan uint64
 }
 
 func NewClient(keys []Key) *Client {
@@ -30,9 +33,14 @@ func NewClient(keys []Key) *Client {
 		keyPool: keyPool{
 			keys: make(chan *Key, len(keys)),
 		},
-		resty:   resty.DefaultClient.SetTimeout(defaultTimeout),
-		limiter: rate.NewLimiter(maxRequestsPerSecond, 1),
+		resty:     resty.DefaultClient.SetTimeout(defaultTimeout),
+		limiter:   rate.NewLimiter(maxRequestsPerSecond, 1),
+		noncePool: make(chan uint64),
 	}
+
+	go func() {
+		client.noncePool <- uint64(time.Now().Unix())
+	}()
 
 	for i := range keys {
 		client.keyPool.Put(&keys[i])
@@ -51,6 +59,14 @@ func (client *Client) SetTransport(transport *http.Transport) {
 
 func (client *Client) SetRequestRateLimit(limit rate.Limit) {
 	client.limiter.SetLimit(limit)
+}
+
+func (client *Client) nonce() string {
+	nonce := <-client.noncePool
+	go func() {
+		client.noncePool <- nonce + 1
+	}()
+	return strconv.FormatUint(nonce, 10)
 }
 
 type Params map[string]string

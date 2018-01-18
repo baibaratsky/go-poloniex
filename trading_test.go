@@ -459,9 +459,13 @@ func TestClient_tradingApiRequest(t *testing.T) {
 				keyPool: keyPool{
 					keys: make(chan *Key, 1),
 				},
-				resty:   tt.fields.resty,
-				limiter: tt.fields.limiter,
+				resty:     tt.fields.resty,
+				limiter:   tt.fields.limiter,
+				noncePool: make(chan uint64),
 			}
+			go func() {
+				client.noncePool <- 1
+			}()
 			client.keyPool.Put(&Key{"KEY", "SECRET"})
 			transport := transportForTesting(server)
 			client.SetTransport(transport)

@@ -26,8 +26,8 @@
   name = "github.com/mitchellh/mapstructure"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/shopspring/decimal"
+  version = "1.0.0"
 
 [[constraint]]
   name = "github.com/smartystreets/goconvey"

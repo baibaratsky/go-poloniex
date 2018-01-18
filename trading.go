@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -259,9 +258,7 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 	}
 
 	key := client.keyPool.Get()
-
-	nonce := time.Now().UnixNano()
-	formData["nonce"] = fmt.Sprintf("%d", nonce)
+	formData["nonce"] = client.nonce()
 
 	request := client.resty.R().
 		SetFormData(formData)

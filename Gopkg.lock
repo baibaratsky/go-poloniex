@@ -26,10 +26,10 @@
   revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
 
 [[projects]]
-  branch = "master"
   name = "github.com/shopspring/decimal"
   packages = ["."]
   revision = "9ca7f51822d222ae4e246f070f9aad863599bd1a"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/smartystreets/assertions"
@@ -82,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "866e424e7a99e18ef2b0cb5ecf52c309e202288e96c381e6a3c711d7dbc4286b"
+  inputs-digest = "74499a9e19cc011b3368365f32a3b8d6e03130c86c26d06ec2c5e93b12684d44"
   solver-name = "gps-cdcl"
   solver-version = 1
