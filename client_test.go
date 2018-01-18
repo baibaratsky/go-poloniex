@@ -9,12 +9,12 @@ import (
 
 func TestClient(t *testing.T) {
 	Convey("Given new client", t, func() {
-		keys := []Key{{"key", "secret"}}
+		keys := []Key{NewKey("key", "secret")}
 
 		c := NewClient(keys)
 
 		key := c.keyPool.Get()
-		So(key.Key, ShouldEqual, "key")
+		So(key.key, ShouldEqual, "key")
 		So(c.limiter.Limit(), ShouldEqual, maxRequestsPerSecond)
 
 		Convey("Should SetTimeout", func() {

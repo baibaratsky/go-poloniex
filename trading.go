@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/shopspring/decimal"
 )
@@ -258,15 +259,16 @@ func (client *Client) tradingApiRequest(result interface{}, method string, param
 	}
 
 	key := client.keyPool.Get()
-	formData["nonce"] = client.nonce()
+	formData["nonce"] = strconv.FormatUint(key.nonce, 10)
+	key.nonce = key.nonce + 1
 
 	request := client.resty.R().
 		SetFormData(formData)
 
-	signature := hmac.New(sha512.New, []byte(key.Secret))
+	signature := hmac.New(sha512.New, []byte(key.secret))
 	signature.Write([]byte(request.FormData.Encode()))
 
-	request.SetHeader("Key", key.Key).
+	request.SetHeader("Key", key.key).
 		SetHeader("Sign", hex.EncodeToString(signature.Sum(nil)))
 
 	response, err := request.Post(tradingApiEndpoint)

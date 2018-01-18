@@ -21,7 +21,7 @@ func TestClient_FeeInfo(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return fee info", func() {
@@ -43,7 +43,7 @@ func TestClient_Balances(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return balances", func() {
@@ -66,7 +66,7 @@ func TestClient_DepositAddresses(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return deposit_addresses", func() {
@@ -89,7 +89,7 @@ func TestClient_NewAddress(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return deposit_addresses", func() {
@@ -127,7 +127,7 @@ func TestClient_TradeHistory(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return trade history", func() {
@@ -150,7 +150,7 @@ func TestClient_TradeHistoryAll(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return all trade history", func() {
@@ -175,7 +175,7 @@ func TestClient_OrderTrades(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return order trades", func() {
@@ -198,7 +198,7 @@ func TestClient_OpenOrders(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return open orders", func() {
@@ -221,7 +221,7 @@ func TestClient_OpenOrdersAll(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should return all open orders", func() {
@@ -244,7 +244,7 @@ func TestClient_Buy(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should buy", func() {
@@ -266,7 +266,7 @@ func TestClient_Sell(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should sell", func() {
@@ -288,7 +288,7 @@ func TestClient_CancellOrder(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should sell", func() {
@@ -310,7 +310,7 @@ func TestClient_MoveOrder(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 
 		Convey("Should sell", func() {
@@ -340,7 +340,7 @@ func TestClient_Withdraw(t *testing.T) {
 		server := createFakeServer(handler)
 		defer server.Close()
 
-		client := NewClient([]Key{Key{"key", "secret"}})
+		client := NewClient([]Key{NewKey("key", "secret")})
 		client.SetTransport(transportForTesting(server))
 		response, err := client.Withdraw("BTC", "xyz", decimal.New(1, 0))
 		So(err, ShouldBeNil)
@@ -459,14 +459,11 @@ func TestClient_tradingApiRequest(t *testing.T) {
 				keyPool: keyPool{
 					keys: make(chan *Key, 1),
 				},
-				resty:     tt.fields.resty,
-				limiter:   tt.fields.limiter,
-				noncePool: make(chan uint64),
+				resty:   tt.fields.resty,
+				limiter: tt.fields.limiter,
 			}
-			go func() {
-				client.noncePool <- 1
-			}()
-			client.keyPool.Put(&Key{"KEY", "SECRET"})
+			key := NewKey("KEY", "SECRET")
+			client.keyPool.Put(&key)
 			transport := transportForTesting(server)
 			client.SetTransport(transport)
 			if err := client.tradingApiRequest(tt.args.result, tt.args.method, tt.args.params...); (err != nil) != tt.wantErr {
