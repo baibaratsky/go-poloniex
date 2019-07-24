@@ -232,6 +232,43 @@ func (client *Client) Withdraw(currency, address string, amount decimal.Decimal)
 	return result.Response, err
 }
 
+type DepositsWithdrawalsResponse struct {
+	Deposits []*struct {
+		DepositNumber uint   `json:"depositNumber"`
+		Currency      string `json:"currency"`
+		Address       string `json:"address"`
+		Amount        string `json:"amount"`
+		Confirmations uint   `json:"confirmations"`
+		Txid          string `json:"txid"`
+		Timestamp     uint   `json:"timestamp"`
+		Status        string `json:"status"`
+	} `json:"deposits"`
+	Withdrawals []*struct {
+		WithdrawalNumber uint    `json:"withdrawalNumber"`
+		Currency         string  `json:"currency"`
+		Address          string  `json:"address"`
+		Amount           string  `json:"amount"`
+		Fee              string  `json:"fee"`
+		Timestamp        uint    `json:"timestamp"`
+		Status           string  `json:"status"`
+		IPAddress        string  `json:"ipAddress"`
+		PaymentID        *string `json:"paymentID"`
+	} `json:"withdrawals"`
+}
+
+func (client *Client) DepositsWithdrawals(start, end int64) (response DepositsWithdrawalsResponse, err error) {
+	params := Params{}
+	if start > 0 {
+		params["start"] = fmt.Sprintf("%d", start)
+	}
+	if end > 0 {
+		params["end"] = fmt.Sprintf("%d", end)
+	}
+
+	err = client.tradingApiRequest(&response, "returnDepositsWithdrawals", params)
+	return
+}
+
 type errorResponse struct {
 	Error *string
 }

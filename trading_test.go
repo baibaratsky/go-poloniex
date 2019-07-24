@@ -349,6 +349,25 @@ func TestClient_Withdraw(t *testing.T) {
 	})
 }
 
+func TestClient_DepositsWithdrawals(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"deposits":[{"depositNumber":7397520,"currency":"BTC","address":"131rdg5Rzn6BFufnnQaHhVa5ZtRU1J2EZR","amount":"0.06830697","confirmations":1,"txid":"3a4b9b2404f6e6fb556c3e1d46a9752f5e70a93ac1718605c992b80aacd8bd1d","timestamp":1506005439,"status":"COMPLETE"}],"withdrawals":[{"withdrawalNumber":7397527,"currency":"ETC","address":"0x26419a62055af459d2cd69bb7392f5100b75e304","amount":"13.19951600","fee":"0.01000000","timestamp":1506010932,"status":"COMPLETE: 0x423346392f82ac16e8c2604f2a604b7b2382d0e9d8030f673821f8de4b5f5a30","ipAddress":"1.2.3.4","paymentID":null}],"adjustments":[{"currency":"STR","amount":"2.38291827","timestamp":1538419390,"status":"COMPLETE","category":"adjustment","adjustmentTitle":"Stellar Inflation","adjustmentDesc":"Your Stellar inflation reward for the week of Jun 11, 2019.","adjustmentHelp":"https://poloniex.freshdesk.com/support/solutions/articles/1000278072-stellar-inflation-what-is-it-and-other-frequently-asked-questions"}]}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+		response, err := client.DepositsWithdrawals(1, 2)
+		So(err, ShouldBeNil)
+
+		So(response, ShouldHaveSameTypeAs, DepositsWithdrawalsResponse{})
+	})
+}
+
 func TestClient_tradingApiRequest(t *testing.T) {
 	type fields struct {
 		resty      *resty.Client
