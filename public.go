@@ -95,14 +95,15 @@ func (client *Client) Currencies() (currencies map[string]Currency, err error) {
 }
 
 type Currency struct {
-	Id             uint            `json:"id"`
-	Name           string          `json:"name"`
-	TaxFee         decimal.Decimal `json:"txFee"`
-	MinimumConf    uint            `json:"minConf"`
-	DepositAddress string          `json:"depositAddress"`
-	Disabled       convertibleBool `json:"disabled"`
-	Frozen         convertibleBool `json:"frozen"`
-	Delisted       convertibleBool `json:"delisted"`
+	Id                 uint            `json:"id"`
+	Name               string          `json:"name"`
+	TaxFee             decimal.Decimal `json:"txFee"`
+	MaxDailyWithdrawal decimal.Decimal `json:"maxDailyWithdrawal"`
+	MinimumConf        uint            `json:"minConf"`
+	DepositAddress     string          `json:"depositAddress"`
+	Disabled           convertibleBool `json:"disabled"`
+	Frozen             convertibleBool `json:"frozen"`
+	Delisted           convertibleBool `json:"delisted"`
 }
 
 func (client *Client) publicApiRequest(result interface{}, method string, params ...Params) error {

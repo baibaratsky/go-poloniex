@@ -57,7 +57,7 @@ func (client *Client) NewAddress(currency string) (address string, err error) {
 	}
 
 	if !result.Success {
-		return result.Response, fmt.Errorf("generateNewAddress for currency %s success = %s, response = %s", currency, result.Success, result.Response)
+		return result.Response, fmt.Errorf("generateNewAddress for currency %s success = %v, response = %v", currency, result.Success, result.Response)
 	}
 
 	return result.Response, err
