@@ -278,6 +278,50 @@ func TestClient_Sell(t *testing.T) {
 	})
 }
 
+func TestClient_BuyFOK(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"orderNumber":31226040,"resultingTrades":[{"amount":"338.8732","date":"2014-10-18 23:03:21","rate":"0.00000174","total":"0.00058625","tradeID":"16164","type":"buy"}]}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should buy", func() {
+			placedOrder, err := client.BuyFOK("ANY", decimal.Zero, decimal.Zero)
+			So(err, ShouldBeNil)
+
+			So(placedOrder.ResultingTrades[0].Rate.String(), ShouldEqual, "0.00000174")
+		})
+	})
+}
+
+func TestClient_SellFOK(t *testing.T) {
+	Convey("Setup correct server", t, func() {
+		handler := &fakeHandler{
+			HandleFunc: func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"orderNumber":31226040,"resultingTrades":[{"amount":"338.8732","date":"2014-10-18 23:03:21","rate":"0.00000174","total":"0.00058625","tradeID":"16164","type":"sell"}]}`)
+			},
+		}
+		server := createFakeServer(handler)
+		defer server.Close()
+
+		client := NewClient([]Key{Key{"key", "secret"}})
+		client.SetTransport(transportForTesting(server))
+
+		Convey("Should sell", func() {
+			placedOrder, err := client.SellFOK("ANY", decimal.Zero, decimal.Zero)
+			So(err, ShouldBeNil)
+
+			So(placedOrder.ResultingTrades[0].Rate.String(), ShouldEqual, "0.00000174")
+		})
+	})
+}
+
 func TestClient_CancellOrder(t *testing.T) {
 	Convey("Setup correct server", t, func() {
 		handler := &fakeHandler{

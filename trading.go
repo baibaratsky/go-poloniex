@@ -181,6 +181,28 @@ func (client *Client) Sell(currencyPair string, rate, amount decimal.Decimal) (p
 	return
 }
 
+// BuyFOK creates buy method with "Fill or Kill" option enabled
+func (client *Client) BuyFOK(currencyPair string, rate, amount decimal.Decimal) (placedOrder PlacedOrder, err error) {
+	err = client.tradingApiRequest(&placedOrder, "buy", Params{
+		"currencyPair": currencyPair,
+		"rate":         rate.String(),
+		"amount":       amount.String(),
+		"fillOrKill":   "1",
+	})
+	return
+}
+
+// SellFOK creates sell method with "Fill or Kill" option enabled
+func (client *Client) SellFOK(currencyPair string, rate, amount decimal.Decimal) (placedOrder PlacedOrder, err error) {
+	err = client.tradingApiRequest(&placedOrder, "sell", Params{
+		"currencyPair": currencyPair,
+		"rate":         rate.String(),
+		"amount":       amount.String(),
+		"fillOrKill":   "1",
+	})
+	return
+}
+
 func (client *Client) CancelOrder(orderNumber uint64) (success bool, err error) {
 	result := struct {
 		Success convertibleBool
